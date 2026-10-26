@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+.next
+**/.next
+.git
+.env*
+npm-debug.log*
+*.log
+*.zip
+coverage
+test-results
+playwright-report
+.DS_Store

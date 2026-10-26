@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  LEADER
+  MEMBER
+}
+
+enum MemberStatus {
+  ACTIVE
+  RETIRED
+  SUSPENDED
+}
+
+enum AnnouncementStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum DeliveryStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+enum RsvpResponse {
+  YES
+  NO
+  MAYBE
+}
+
+enum OutboxStatus {
+  PENDING
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Local {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String         @db.VarChar(200)
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  users         User[]
+  members       Member[]
+  announcements Announcement[]
+  auditLogs     AuditLog[]
+
+  @@map("locals")
+}
+
+model User {
+  id                    String         @id @default(uuid()) @db.Uuid
+  localId               String         @map("local_id") @db.Uuid
+  email                 String         @unique @db.VarChar(320)
+  passwordHash          String         @map("password_hash") @db.VarChar(255)
+  role                  UserRole
+  createdAt             DateTime       @default(now()) @map("created_at")
+  updatedAt             DateTime       @updatedAt @map("updated_at")
+  local                 Local          @relation(fields: [localId], references: [id], onDelete: Cascade)
+  memberProfile         Member?        @relation("MemberUser")
+  createdAnnouncements  Announcement[] @relation("AnnouncementCreator")
+  approvedAnnouncements Announcement[] @relation("AnnouncementApprover")
+  auditLogs             AuditLog[]     @relation("AuditActor")
+
+  @@unique([localId, id])
+  @@index([localId, role])
+  @@map("users")
+}
+
+model Member {
+  id             String                  @id @default(uuid()) @db.Uuid
+  localId        String                  @map("local_id") @db.Uuid
+  userId         String?                 @unique @map("user_id") @db.Uuid
+  fullName       String                  @map("full_name") @db.VarChar(200)
+  email          String                  @db.VarChar(320)
+  classification String                  @db.VarChar(100)
+  status         MemberStatus            @default(ACTIVE)
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+  local          Local                   @relation(fields: [localId], references: [id], onDelete: Cascade)
+  user           User?                   @relation("MemberUser", fields: [localId, userId], references: [localId, id], onDelete: Restrict)
+  recipients     AnnouncementRecipient[]
+
+  @@unique([localId, id])
+  @@unique([localId, email])
+  @@unique([localId, userId])
+  @@index([localId, status, classification])
+  @@index([localId, classification, status])
+  @@map("members")
+}
+
+model Announcement {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  localId              String                  @map("local_id") @db.Uuid
+  createdById          String                  @map("created_by_id") @db.Uuid
+  title                String                  @db.VarChar(250)
+  body                 String                  @db.Text
+  pushPreview          String?                 @map("push_preview") @db.VarChar(120)
+  needsAck             Boolean                 @default(false) @map("needs_ack")
+  rsvpEnabled          Boolean                 @default(false) @map("rsvp_enabled")
+  classificationFilter String?                 @map("classification_filter") @db.VarChar(100)
+  status               AnnouncementStatus      @default(DRAFT)
+  approvedById         String?                 @map("approved_by_id") @db.Uuid
+  approvedAt           DateTime?               @map("approved_at")
+  sentAt               DateTime?               @map("sent_at")
+  createdAt            DateTime                @default(now()) @map("created_at")
+  updatedAt            DateTime                @updatedAt @map("updated_at")
+  local                Local                   @relation(fields: [localId], references: [id], onDelete: Cascade)
+  createdBy            User                    @relation("AnnouncementCreator", fields: [localId, createdById], references: [localId, id], onDelete: Restrict)
+  approvedBy           User?                   @relation("AnnouncementApprover", fields: [localId, approvedById], references: [localId, id], onDelete: Restrict)
+  recipients           AnnouncementRecipient[]
+
+  @@unique([localId, id])
+  @@index([status, updatedAt, id])
+  @@index([localId, status, createdAt])
+  @@index([localId, createdAt])
+  @@map("announcements")
+}
+
+model AnnouncementRecipient {
+  id             String                @id @default(uuid()) @db.Uuid
+  localId        String                @map("local_id") @db.Uuid
+  announcementId String                @map("announcement_id") @db.Uuid
+  memberId       String                @map("member_id") @db.Uuid
+  deliveryStatus DeliveryStatus        @default(PENDING) @map("delivery_status")
+  readAt         DateTime?             @map("read_at")
+  acknowledgedAt DateTime?             @map("acknowledged_at")
+  rsvpStatus     RsvpResponse?         @map("rsvp_status")
+  rsvpUpdatedAt  DateTime?             @map("rsvp_updated_at")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  announcement   Announcement          @relation(fields: [localId, announcementId], references: [localId, id], onDelete: Cascade)
+  member         Member                @relation(fields: [localId, memberId], references: [localId, id], onDelete: Cascade)
+  outbox         NotificationOutbox?
+  dispatch       NotificationDispatch?
+
+  @@unique([localId, id])
+  @@unique([announcementId, memberId])
+  @@index([localId, memberId, createdAt])
+  @@index([localId, memberId, createdAt, id])
+  @@index([announcementId, deliveryStatus])
+  @@index([announcementId, readAt])
+  @@index([announcementId, acknowledgedAt])
+  @@index([announcementId, rsvpStatus])
+  @@map("announcement_recipients")
+}
+
+model NotificationOutbox {
+  id            String                @id @default(uuid()) @db.Uuid
+  localId       String                @map("local_id") @db.Uuid
+  recipientId   String                @unique @map("recipient_id") @db.Uuid
+  status        OutboxStatus          @default(PENDING)
+  attemptCount  Int                   @default(0) @map("attempt_count")
+  lastError     String?               @map("last_error") @db.Text
+  nextAttemptAt DateTime?             @map("next_attempt_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+  recipient     AnnouncementRecipient @relation(fields: [localId, recipientId], references: [localId, id], onDelete: Cascade)
+
+  @@unique([localId, recipientId])
+  @@index([status, nextAttemptAt])
+  @@index([localId, status])
+  @@map("notification_outbox")
+}
+
+model NotificationDispatch {
+  id           String                @id @default(uuid()) @db.Uuid
+  localId      String                @map("local_id") @db.Uuid
+  recipientId  String                @unique @map("recipient_id") @db.Uuid
+  dispatchedAt DateTime              @map("dispatched_at")
+  createdAt    DateTime              @default(now()) @map("created_at")
+  recipient    AnnouncementRecipient @relation(fields: [localId, recipientId], references: [localId, id], onDelete: Cascade)
+
+  @@unique([localId, recipientId])
+  @@index([localId, dispatchedAt])
+  @@map("notification_dispatches")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  localId      String   @map("local_id") @db.Uuid
+  actorId      String?  @map("actor_id") @db.Uuid
+  action       String   @db.VarChar(100)
+  resourceType String   @map("resource_type") @db.VarChar(100)
+  resourceId   String?  @map("resource_id") @db.Uuid
+  metadata     Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  local        Local    @relation(fields: [localId], references: [id], onDelete: Cascade)
+  actor        User?    @relation("AuditActor", fields: [localId, actorId], references: [localId, id], onDelete: Restrict)
+
+  @@index([localId, createdAt])
+  @@index([localId, action, createdAt])
+  @@map("audit_logs")
+}

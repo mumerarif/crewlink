@@ -1,0 +1,12 @@
+'use client';
+
+import { useCallback, useEffect, useState } from 'react';
+import { apiRequest } from '../../../lib/api';
+import { EmptyState, ErrorState, LoadingState, Pagination, StatusBadge, formatDate } from '../../../components/UI';
+
+export default function MembersPage() {
+  const [page, setPage] = useState(1); const [classification, setClassification] = useState(''); const [applied, setApplied] = useState(''); const [state, setState] = useState({ loading: true });
+  const load = useCallback(async (signal) => { setState({ loading: true }); try { const query = new URLSearchParams({ page: String(page), limit: '25' }); if (applied) query.set('classification', applied); const result = await apiRequest(`/api/members?${query}`, { signal }); setState({ items: result.data, pagination: result.pagination }); } catch (error) { if (error.name !== 'AbortError') setState({ error: error.message }); } }, [page, applied]);
+  useEffect(() => { const c = new AbortController(); load(c.signal); return () => c.abort(); }, [load]);
+  return <><div className="page-heading"><div><p className="eyebrow">Directory</p><h2>Local members</h2><p>Tenant-scoped membership records. Profile editing is not available.</p></div></div><form className="filter-bar" onSubmit={(e) => { e.preventDefault(); setPage(1); setApplied(classification.trim()); }}><label>Classification<input value={classification} maxLength={100} onChange={(e) => setClassification(e.target.value)} placeholder="e.g. Journeyman" /></label><button className="button secondary" type="submit">Apply filter</button>{applied && <button className="button ghost" type="button" onClick={() => { setClassification(''); setApplied(''); setPage(1); }}>Clear</button>}</form>{state.loading ? <LoadingState /> : state.error ? <ErrorState message={state.error} retry={() => load()} /> : state.items.length === 0 ? <EmptyState title="No members found" message="Try clearing the classification filter." /> : <><div className="card table-card"><table><thead><tr><th>Name</th><th>Email</th><th>Classification</th><th>Status</th><th>Joined</th></tr></thead><tbody>{state.items.map((member) => <tr key={member.id}><td><strong>{member.fullName}</strong></td><td>{member.email}</td><td>{member.classification}</td><td><StatusBadge status={member.status} /></td><td>{formatDate(member.createdAt)}</td></tr>)}</tbody></table></div><Pagination pagination={state.pagination} onPage={setPage} /></>}</>;
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@crewlink/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "check": "node --check app/api/session/login/route.js && node --check app/api/backend/[...path]/route.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "tailwindcss": "4.3.3"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

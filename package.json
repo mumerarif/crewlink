@@ -1,0 +1,33 @@
+{
+  "name": "crewlink",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace @crewlink/api",
+    "dev:web": "npm run dev --workspace @crewlink/web",
+    "test:web": "npm run test --workspace @crewlink/web",
+    "check:web": "npm run check --workspace @crewlink/web",
+    "start:api": "npm run start --workspace @crewlink/api",
+    "start:worker": "npm run worker --workspace @crewlink/api",
+    "test": "npm run test --workspace @crewlink/api",
+    "test:integration": "npm run test:integration --workspace @crewlink/api",
+    "test:security": "npm run test:security --workspace @crewlink/api",
+    "test:phase4": "npm run test:phase4 --workspace @crewlink/api",
+    "test:scale": "RUN_LARGE_AUDIENCE_TEST=true npm run test:phase4 --workspace @crewlink/api",
+    "test:phase5": "npm run test:phase5 --workspace @crewlink/api",
+    "test:db:up": "docker compose -f docker-compose.test.yml up -d --wait",
+    "test:db:down": "docker compose -f docker-compose.test.yml down",
+    "build": "npm run build --workspace @crewlink/web",
+    "prisma:generate": "npm run prisma:generate --workspace @crewlink/api",
+    "prisma:migrate": "npm run prisma:migrate --workspace @crewlink/api",
+    "prisma:deploy": "npm run prisma:deploy --workspace @crewlink/api",
+    "prisma:seed": "npm run prisma:seed --workspace @crewlink/api"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="980" viewBox="0 0 1400 980" role="img" aria-labelledby="title description">
+  <title id="title">CrewLink runtime and notification architecture</title>
+  <description id="description">Browser requests flow through Next.js and Nginx to two Express APIs. PostgreSQL stores the transactional outbox. Publishers in both API processes enqueue per-recipient BullMQ jobs in Redis. A notification worker records simulated dispatches and reconciles stale sending announcements in PostgreSQL.</description>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fbff"/>
+      <stop offset="1" stop-color="#eef5fb"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#18324a" flood-opacity="0.14"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L12,6 L0,12 z" fill="#315c7d"/>
+    </marker>
+    <style>
+      .title { font: 700 30px system-ui, -apple-system, sans-serif; fill: #102a43; }
+      .label { font: 700 23px system-ui, -apple-system, sans-serif; fill: #102a43; }
+      .body { font: 18px system-ui, -apple-system, sans-serif; fill: #486581; }
+      .small { font: 16px system-ui, -apple-system, sans-serif; fill: #486581; }
+      .box { fill: #ffffff; stroke: #2f80c9; stroke-width: 2.5; rx: 16; filter: url(#shadow); }
+      .data { fill: #f4f8fb; stroke: #52738c; }
+      .queue { fill: #fff7f2; stroke: #d96b32; }
+      .worker { fill: #f4fbf7; stroke: #31966a; }
+      .line { fill: none; stroke: #315c7d; stroke-width: 3; marker-end: url(#arrow); }
+      .dash { stroke-dasharray: 10 8; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="980" fill="url(#background)"/>
+  <text x="700" y="52" text-anchor="middle" class="title">CrewLink — Runtime and Reliable Notification Flow</text>
+
+  <rect x="485" y="82" width="430" height="92" class="box"/>
+  <text x="700" y="120" text-anchor="middle" class="label">Browser</text>
+  <text x="700" y="150" text-anchor="middle" class="body">Leader / Member UI</text>
+
+  <rect x="485" y="215" width="430" height="104" class="box"/>
+  <text x="700" y="254" text-anchor="middle" class="label">Next.js 16</text>
+  <text x="700" y="284" text-anchor="middle" class="body">Frontend + secure session proxy</text>
+
+  <rect x="485" y="360" width="430" height="92" class="box"/>
+  <text x="700" y="398" text-anchor="middle" class="label">Nginx</text>
+  <text x="700" y="428" text-anchor="middle" class="body">Round-robin API load balancer</text>
+
+  <rect x="170" y="510" width="420" height="124" class="box"/>
+  <text x="380" y="550" text-anchor="middle" class="label">Express API 1</text>
+  <text x="380" y="580" text-anchor="middle" class="body">JWT · RBAC · tenant-scoped services</text>
+  <text x="380" y="608" text-anchor="middle" class="small">Outbox publisher poller</text>
+
+  <rect x="810" y="510" width="420" height="124" class="box"/>
+  <text x="1020" y="550" text-anchor="middle" class="label">Express API 2</text>
+  <text x="1020" y="580" text-anchor="middle" class="body">JWT · RBAC · tenant-scoped services</text>
+  <text x="1020" y="608" text-anchor="middle" class="small">Outbox publisher poller</text>
+
+  <rect x="80" y="735" width="470" height="150" class="box data"/>
+  <text x="315" y="775" text-anchor="middle" class="label">PostgreSQL + Prisma</text>
+  <text x="315" y="808" text-anchor="middle" class="body">Announcements · recipient snapshots</text>
+  <text x="315" y="837" text-anchor="middle" class="body">Transactional outbox · unique dispatches</text>
+  <text x="315" y="866" text-anchor="middle" class="body">Audit and engagement state</text>
+
+  <rect x="650" y="704" width="310" height="118" class="box queue"/>
+  <text x="805" y="746" text-anchor="middle" class="label">Redis + BullMQ</text>
+  <text x="805" y="778" text-anchor="middle" class="body">Per-recipient jobs</text>
+  <text x="805" y="804" text-anchor="middle" class="small">Retries + stable job IDs</text>
+
+  <rect x="1015" y="704" width="320" height="181" class="box worker"/>
+  <text x="1175" y="746" text-anchor="middle" class="label">Notification Worker</text>
+  <text x="1175" y="779" text-anchor="middle" class="body">Processes BullMQ jobs</text>
+  <text x="1175" y="808" text-anchor="middle" class="body">Records simulated dispatches</text>
+  <text x="1175" y="837" text-anchor="middle" class="body">Finalizes after commit</text>
+  <text x="1175" y="866" text-anchor="middle" class="small">Reconciles stale SENDING records</text>
+
+  <path d="M700 174 V215" class="line"/>
+  <path d="M700 319 V360" class="line"/>
+  <path d="M700 452 V480 H380 V510" class="line"/>
+  <path d="M700 452 V480 H1020 V510" class="line"/>
+
+  <path d="M330 634 V690 H260 V735" class="line"/>
+  <path d="M1070 634 V670 H370 V735" class="line"/>
+
+  <path d="M520 634 V660 H740 V704" class="line dash"/>
+  <path d="M880 634 V676 H805 V704" class="line dash"/>
+  <text x="695" y="655" text-anchor="middle" class="small">publish committed outbox rows</text>
+
+  <path d="M960 763 H1015" class="line"/>
+  <path d="M1100 885 V925 H470 V885" class="line"/>
+  <text x="790" y="952" text-anchor="middle" class="small">transactional status updates, dispatch uniqueness, and reconciliation</text>
+</svg>
